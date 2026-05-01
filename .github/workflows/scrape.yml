@@ -1,0 +1,36 @@
+name: Lumber Price Tracker
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 8am EST (UTC-4)
+    - cron: '0 0 * * *'    # 8pm EST (UTC-4)
+  workflow_dispatch:        # lets you trigger it manually from GitHub UI
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to commit the JSON back to the repo
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install curl_cffi beautifulsoup4
+
+      - name: Run scraper
+        run: python scraper.py
+
+      - name: Commit updated data
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.json
+          git diff --cached --quiet || git commit -m "Price update $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push
