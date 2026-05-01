@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lumber Prices</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #191c26;
+      --border:   #2a2e3d;
+      --accent:   #d4a843;
+      --accent2:  #5b8cf7;
+      --up:       #e05c5c;
+      --down:     #4caf82;
+      --text:     #e8eaf0;
+      --muted:    #6b7280;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.25rem;
+    }
+
+    header h1 {
+      font-family: 'Azeret Mono', monospace;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--accent);
+    }
+
+    #last-updated {
+      font-size: .75rem;
+      color: var(--muted);
+      font-family: 'Azeret Mono', monospace;
+    }
+
+    #grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 480px), 1fr));
+      gap: 1.5rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.4rem 1.5rem 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 1.1rem;
+    }
+
+    .card-name {
+      font-size: .8rem;
+      font-family: 'Azeret Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      max-width: 60%;
+      line-height: 1.4;
+    }
+
+    .card-price {
+      text-align: right;
+    }
+
+    .price-current {
+      font-family: 'Azeret Mono', monospace;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .price-delta {
+      font-size: .72rem;
+      font-family: 'Azeret Mono', monospace;
+      margin-top: .3rem;
+      text-align: right;
+    }
+    .price-delta.up   { color: var(--up);   }
+    .price-delta.down { color: var(--down); }
+    .price-delta.flat { color: var(--muted); }
+
+    .chart-wrap {
+      position: relative;
+      height: 140px;
+      margin-top: .5rem;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      padding-top: .9rem;
+      border-top: 1px solid var(--border);
+    }
+
+    .stat label {
+      display: block;
+      font-size: .65rem;
+      font-family: 'Azeret Mono', monospace;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      margin-bottom: .2rem;
+    }
+
+    .stat span {
+      font-family: 'Azeret Mono', monospace;
+      font-size: .88rem;
+      color: var(--text);
+    }
+
+    #error {
+      color: var(--up);
+      font-family: 'Azeret Mono', monospace;
+      font-size: .85rem;
+      margin-top: 2rem;
+    }
+
+    .empty {
+      color: var(--muted);
+      font-size: .85rem;
+      margin-top: 3rem;
+      font-family: 'Azeret Mono', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⌇ Lumber Tracker</h1>
+  <span id="last-updated">loading…</span>
+</header>
+
+<div id="grid"></div>
+<p id="error" style="display:none"></p>
+
+<script>
+// ─── CONFIG ──────────────────────────────────────────────────────────────────
+// If you rename your repo, update this URL.
+// Format: https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO/main/data.json
+const DATA_URL = "data.json";   // works when opened via GitHub Pages on same repo
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function load() {
+  let data;
+  try {
+    const res = await fetch(DATA_URL);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (e) {
+    document.getElementById("error").style.display = "";
+    document.getElementById("error").textContent =
+      `Could not load data.json — ${e.message}. ` +
+      `Make sure the file exists and GitHub Pages is enabled.`;
+    return;
+  }
+
+  const products = Object.values(data);
+  if (!products.length) {
+    document.getElementById("grid").innerHTML =
+      '<p class="empty">No data yet — wait for the first GitHub Actions run.</p>';
+    return;
+  }
+
+  // Find the latest timestamp across all products
+  const allTs = products.flatMap(p => p.readings.map(r => r.timestamp));
+  const latest = new Date(allTs.sort().at(-1));
+  document.getElementById("last-updated").textContent =
+    "Last updated: " + latest.toLocaleString("en-CA", { timeZone: "America/Toronto" });
+
+  const grid = document.getElementById("grid");
+
+  products.forEach(product => {
+    const readings = product.readings.filter(r => r.price !== null);
+    if (!readings.length) return;
+
+    const prices   = readings.map(r => r.price);
+    const labels   = readings.map(r => {
+      const d = new Date(r.timestamp);
+      return d.toLocaleDateString("en-CA", { month:"short", day:"numeric" }) +
+             " " + d.toLocaleTimeString("en-CA", { hour:"2-digit", minute:"2-digit", timeZone:"America/Toronto" });
+    });
+
+    const current  = prices.at(-1);
+    const prev     = prices.at(-2) ?? current;
+    const minP     = Math.min(...prices);
+    const maxP     = Math.max(...prices);
+    const delta    = current - prev;
+    const deltaPct = prev ? ((delta / prev) * 100).toFixed(2) : "0.00";
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const deltaClass = delta > 0 ? "up" : delta < 0 ? "down" : "flat";
+    const deltaSign  = delta > 0 ? "▲" : delta < 0 ? "▼" : "—";
+    const deltaStr   = delta !== 0
+      ? `${deltaSign} $${Math.abs(delta).toFixed(2)} (${Math.abs(deltaPct)}%)`
+      : "— no change";
+
+    card.innerHTML = `
+      <div class="card-header">
+        <div class="card-name">${product.name}</div>
+        <div class="card-price">
+          <div class="price-current">$${current.toFixed(2)}</div>
+          <div class="price-delta ${deltaClass}">${deltaStr}</div>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chart-${product.name.replace(/\W/g,'_')}"></canvas>
+      </div>
+      <div class="stats-row">
+        <div class="stat"><label>Low</label><span>$${minP.toFixed(2)}</span></div>
+        <div class="stat"><label>High</label><span>$${maxP.toFixed(2)}</span></div>
+        <div class="stat"><label>Readings</label><span>${readings.length}</span></div>
+      </div>
+    `;
+
+    grid.appendChild(card);
+
+    // Draw chart
+    const ctx = card.querySelector("canvas").getContext("2d");
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          data: prices,
+          borderColor: "#d4a843",
+          borderWidth: 1.5,
+          pointRadius: prices.length < 30 ? 3 : 0,
+          pointBackgroundColor: "#d4a843",
+          fill: true,
+          backgroundColor: "rgba(212,168,67,.08)",
+          tension: 0.3,
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: {
+          callbacks: { label: ctx => ` $${ctx.parsed.y.toFixed(2)}` }
+        }},
+        scales: {
+          x: { display: false },
+          y: {
+            grid: { color: "rgba(255,255,255,.05)" },
+            ticks: {
+              color: "#6b7280",
+              font: { family: "Azeret Mono", size: 10 },
+              callback: v => "$" + v.toFixed(2),
+            }
+          }
+        }
+      }
+    });
+  });
+}
+
+load();
+</script>
+</body>
+</html>
