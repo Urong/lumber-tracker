@@ -1,1 +1,13 @@
-{}
+{
+  "cedar_4x4x10": {
+    "name": "4\"x4\"x10' Western Red Cedar",
+    "url": "https://www.rona.ca/en/product/4-in-x-4-in-x-10-ft-western-red-cedar-rcd4410ap-10555019",
+    "readings": [
+      {
+        "timestamp": "2026-05-01T15:56:17.673276+00:00",
+        "raw": null,
+        "price": null
+      }
+    ]
+  }
+}
