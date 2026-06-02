@@ -322,6 +322,11 @@
         "timestamp": "2026-06-01T17:22:02.934475+00:00",
         "raw": null,
         "price": null
+      },
+      {
+        "timestamp": "2026-06-02T03:36:34.764100+00:00",
+        "raw": null,
+        "price": null
       }
     ]
   }
