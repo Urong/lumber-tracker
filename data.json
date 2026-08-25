@@ -4,11 +4,6 @@
     "url": "https://www.rona.ca/en/product/4-in-x-4-in-x-10-ft-western-red-cedar-rcd4410ap-10555019",
     "readings": [
       {
-        "timestamp": "2026-05-27T14:59:28.180189+00:00",
-        "raw": null,
-        "price": null
-      },
-      {
         "timestamp": "2026-05-28T02:47:45.542944+00:00",
         "raw": null,
         "price": null
@@ -900,6 +895,11 @@
       },
       {
         "timestamp": "2026-08-25T01:01:42.637620+00:00",
+        "raw": null,
+        "price": null
+      },
+      {
+        "timestamp": "2026-08-25T12:31:23.071642+00:00",
         "raw": null,
         "price": null
       }
